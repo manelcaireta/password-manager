@@ -1,0 +1,27 @@
+l:
+
+bazar: 37
+desayuno: 11
+dia: 10
+baazar: 6
+glovo: 24
+forn: 4
+condis: 31
+bazar2: 38
+glovo2: 31
+
+192
+
+m:
+condis: 20
+goiko: 50
+condis: 10
+desayuno: 10
+dia: 71
+ferreteria: 10
+cresta: 40
+condis: 5
+vegas: 37
+ferreteria: 4
+
+257
