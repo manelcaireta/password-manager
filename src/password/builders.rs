@@ -1,7 +1,8 @@
 use super::length::PasswordLengths;
 use super::Password;
+use rand;
 use rand::seq::SliceRandom;
-use rand::{self, Rng};
+use rand::Rng;
 
 #[derive(Clone)]
 pub struct PasswordBuilder {
@@ -9,12 +10,18 @@ pub struct PasswordBuilder {
     max_length: u8,
 }
 
-impl PasswordBuilder {
-    pub fn new() -> Self {
+impl Default for PasswordBuilder {
+    fn default() -> Self {
         PasswordBuilder {
             min_length: 8,
             max_length: 16,
         }
+    }
+}
+
+impl PasswordBuilder {
+    pub fn new() -> Self {
+        PasswordBuilder::default()
     }
 
     pub fn min_length(mut self, min_length: u8) -> Self {
@@ -36,16 +43,13 @@ impl PasswordBuilder {
 
 impl PasswordBuilder {
     pub fn build(&self, name: String) -> Password {
-        let password_lengths = self.gen_password_length();
-        let password_value = self.gen_password_value(password_lengths);
+        let password_lengths = self.gen_password_lengths();
+        let password_value = self.gen_password_from_lengths(password_lengths);
 
-        Password {
-            name,
-            value: password_value,
-        }
+        Password::new(name, password_value)
     }
 
-    fn gen_password_length(&self) -> PasswordLengths {
+    fn gen_password_lengths(&self) -> PasswordLengths {
         let length_difference = self.max_length - self.min_length + 1;
         let total_length =
             (rand::random::<u8>() % length_difference) + self.min_length;
@@ -53,7 +57,7 @@ impl PasswordBuilder {
         password_lengths
     }
 
-    fn gen_password_value(&self, password_lengths: PasswordLengths) -> String {
+    fn gen_password_from_lengths(&self, password_lengths: PasswordLengths) -> String {
         let mut password_characters = Vec::new();
         for _ in 0..password_lengths.lower() {
             password_characters.push(self.gen_lowercase_letter());
@@ -161,7 +165,9 @@ mod tests {
     #[should_panic]
     fn invalid_max_length() {
         let mut password_creator = PasswordBuilder::new();
-        password_creator = password_creator.clone().max_length(password_creator.min_length - 1);
+        password_creator = password_creator
+            .clone()
+            .max_length(password_creator.min_length - 1);
         password_creator.build("test_password".to_string());
     }
 }
