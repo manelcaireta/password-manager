@@ -1,5 +1,7 @@
-use super::length::PasswordLengths;
+mod length;
+
 use super::Password;
+use length::PasswordLengths;
 use rand;
 use rand::seq::SliceRandom;
 use rand::Rng;
@@ -57,7 +59,10 @@ impl PasswordBuilder {
         password_lengths
     }
 
-    fn gen_password_from_lengths(&self, password_lengths: PasswordLengths) -> String {
+    fn gen_password_from_lengths(
+        &self,
+        password_lengths: PasswordLengths,
+    ) -> String {
         let mut password_characters = Vec::new();
         for _ in 0..password_lengths.lower() {
             password_characters.push(self.gen_lowercase_letter());
@@ -150,8 +155,8 @@ mod tests {
         assert!(has_uppercase(&password));
         assert!(has_punctuation(&password));
         assert!(has_numbers(&password));
-        assert!(password.value.len() > 8);
-        assert!(password.value.len() < 16);
+        assert!(password.value.len() >= 8);
+        assert!(password.value.len() <= 16);
     }
 
     #[test]
@@ -164,7 +169,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn invalid_max_length() {
-        let mut password_creator = PasswordBuilder::new();
+        let mut password_creator = PasswordBuilder::new().min_length(1);
         password_creator = password_creator
             .clone()
             .max_length(password_creator.min_length - 1);

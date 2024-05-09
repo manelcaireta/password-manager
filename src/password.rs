@@ -1,7 +1,10 @@
 pub mod builders;
-pub mod savers;
-mod length;
+pub mod repository;
 
+use std::arch::asm;
+use std::path::PathBuf;
+
+#[derive(PartialEq, Debug)]
 pub struct Password {
     name: String,
     value: String,
@@ -27,5 +30,26 @@ impl Password {
 
     pub fn value(&self) -> &str {
         &self.value
+    }
+}
+
+impl Password {
+    fn default_path() -> PathBuf {
+        match std::env::var("PASSWORD_HOME") {
+            Ok(home_path) => PathBuf::from(&home_path),
+            Err(_) => {
+                let home_string = std::env::var("HOME").unwrap();
+                let home_path =
+                    PathBuf::from_iter([&home_string, ".password"]);
+                home_path
+            }
+        }
+    }
+
+    fn create_home_directory() {
+        let home_path = Password::default_path();
+        if !home_path.exists() {
+            std::fs::create_dir(&home_path).unwrap();
+        }
     }
 }
