@@ -4,6 +4,7 @@
 pub mod password;
 
 use password::builders::PasswordBuilder;
+use password::repository::PasswordRepository;
 use password::Password;
 use std::env::args;
 
@@ -23,10 +24,16 @@ pub fn main() {
 
 fn create_and_store_password(password_name: String) {
     let password = create_password(password_name);
+    save_password(&password);
     println!("{}", password)
 }
 
 fn create_password(password_name: String) -> Password {
     let password_builder = PasswordBuilder::new();
     password_builder.build(password_name)
+}
+
+fn save_password(password: &Password) {
+    let password_repository = PasswordRepository::new();
+    password_repository.add(password);
 }

@@ -1,9 +1,10 @@
 use super::Password;
 use std::fs::{File, OpenOptions};
+use std::io;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 
-struct PasswordRepository {
+pub struct PasswordRepository {
     path: PathBuf,
 }
 
@@ -19,11 +20,11 @@ impl Default for PasswordRepository {
 }
 
 impl PasswordRepository {
-    fn new() -> Self {
+    pub fn new() -> Self {
         PasswordRepository::default()
     }
 
-    fn add(&self, password: &Password) {
+    pub fn add(&self, password: &Password) {
         let mut file = OpenOptions::new()
             .append(true)
             .create(true)
@@ -32,7 +33,7 @@ impl PasswordRepository {
         writeln!(file, "{password}").expect("Couldn't save password");
     }
 
-    fn get(&self, password_name: &str) -> Result<Password, ()> {
+    pub fn get(&self, password_name: &str) -> Result<Password, ()> {
         let file = File::open(&self.path).expect("Couldn't open file");
         let reader = BufReader::new(file);
 
@@ -49,14 +50,23 @@ impl PasswordRepository {
         Err(())
     }
 
-    fn delete(&self, password_name: &str) {
+    pub fn delete(&self, password_name: &str) {
+        let temp_string = self.read_all_passwords_except(password_name);
+        self.write_all_passwords(temp_string.unwrap())
+            .expect("Couldn't write to file");
+    }
+
+    fn read_all_passwords_except(
+        &self,
+        password_name: &str,
+    ) -> Option<String> {
         let mut temp_string = String::new();
         let file_to_read = match OpenOptions::new().read(true).open(&self.path)
         {
             Ok(file) => file,
             Err(err) => {
                 println!("Couldn't open passwords file: {err}");
-                return;
+                return None;
             }
         };
         let reader = BufReader::new(&file_to_read);
@@ -70,6 +80,13 @@ impl PasswordRepository {
             }
         }
 
+        Some(temp_string)
+    }
+
+    fn write_all_passwords(
+        &self,
+        temp_string: String,
+    ) -> Result<(), io::Error> {
         let mut file_to_write = match OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -78,16 +95,21 @@ impl PasswordRepository {
             Ok(file) => file,
             Err(err) => {
                 println!("Couldn't open passwords file: {err}");
-                return;
+                return Err(io::Error::from(err));
             }
         };
         file_to_write
             .write_all(temp_string.as_bytes())
             .expect("Couldn't write to file");
+
+        Ok(())
     }
 
-    fn update(&self, password: &Password) {
-        println!("updated");
+    pub fn update(&self, password: &Password) {
+        // NOTE: could make own implementation for performance boost
+
+        self.delete(password.name());
+        self.add(password);
     }
 }
 
@@ -106,21 +128,21 @@ mod tests {
         assert_eq!(
             password,
             password_repo
-                .get(&password.name)
+                .get(password.name())
                 .expect("Couldn't get value")
         );
 
-        // let new_password =
-        //     Password::new(password.name, "NEW-TEST".to_string());
-        // password_repo.update(&new_password);
+        let new_password =
+            Password::new(password.name().to_string(), "NEW-TEST".to_string());
+        password_repo.update(&new_password);
 
-        // assert_eq!(
-        //     new_password,
-        //     password_repo
-        //         .get(&new_password.name)
-        //         .expect("Couldn't get value")
-        // );
+        assert_eq!(
+            new_password,
+            password_repo
+                .get(&new_password.name)
+                .expect("Couldn't get value")
+        );
 
-        password_repo.delete(&password.name);
+        password_repo.delete(new_password.name());
     }
 }
