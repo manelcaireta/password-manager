@@ -1,6 +1,9 @@
 pub mod builders;
 pub mod repository;
 
+pub use builders::PasswordBuilder;
+pub use repository::PasswordRepository;
+
 use std::arch::asm;
 use std::path::PathBuf;
 

@@ -2,6 +2,7 @@ use super::Password;
 use std::fs::{File, OpenOptions};
 use std::io;
 use std::io::{BufRead, BufReader, BufWriter, Read, Write};
+use std::ops::Not;
 use std::path::{Path, PathBuf};
 
 pub struct PasswordRepository {
@@ -25,6 +26,10 @@ impl PasswordRepository {
     }
 
     pub fn add(&self, password: &Password) {
+        if self.get(password.name()).is_some() {
+            panic!("Password already exists. Delete before ")
+        }
+
         let mut file = OpenOptions::new()
             .append(true)
             .create(true)
@@ -33,7 +38,7 @@ impl PasswordRepository {
         writeln!(file, "{password}").expect("Couldn't save password");
     }
 
-    pub fn get(&self, password_name: &str) -> Result<Password, ()> {
+    pub fn get(&self, password_name: &str) -> Option<Password> {
         let file = File::open(&self.path).expect("Couldn't open file");
         let reader = BufReader::new(file);
 
@@ -43,16 +48,16 @@ impl PasswordRepository {
             let name = splits.nth(0).unwrap().to_string();
             if name == password_name {
                 let value = splits.next().unwrap().to_string();
-                return Ok(Password::new(name, value));
+                return Some(Password::new(name, value));
             }
         }
 
-        Err(())
+        None
     }
 
     pub fn delete(&self, password_name: &str) {
-        let temp_string = self.read_all_passwords_except(password_name);
-        self.write_all_passwords(temp_string.unwrap())
+        let temp_string = self.read_all_passwords_except(password_name).unwrap();
+        self.write_all_passwords_from_string(temp_string)
             .expect("Couldn't write to file");
     }
 
@@ -60,7 +65,6 @@ impl PasswordRepository {
         &self,
         password_name: &str,
     ) -> Option<String> {
-        let mut temp_string = String::new();
         let file_to_read = match OpenOptions::new().read(true).open(&self.path)
         {
             Ok(file) => file,
@@ -71,19 +75,28 @@ impl PasswordRepository {
         };
         let reader = BufReader::new(&file_to_read);
 
-        for line in reader.lines() {
-            let current_line = line.expect("Couldn't read lines");
-            let split = current_line.split(": ").nth(0).unwrap().to_string();
-            if split != password_name {
-                temp_string.push_str(&current_line);
-                temp_string.push('\n');
-            }
-        }
+        let temp_string = self.delete_from_lines(reader.lines(), password_name);
 
         Some(temp_string)
     }
 
-    fn write_all_passwords(
+    fn delete_from_lines<B: BufRead>(&self, lines: io::Lines<B>, element_to_delete: &str) -> String{
+        let mut temp_string = String::new();
+        for line in lines {
+            let current_line = line.expect("Couldn't read lines");
+            let split = current_line.split(": ").nth(0).unwrap().to_string();
+            if split != element_to_delete {
+                temp_string.push_str(&current_line);
+                temp_string.push('\n');
+            } else {
+                println!("Deleted {element_to_delete}");
+            }
+        }
+
+        temp_string
+    }
+
+    fn write_all_passwords_from_string(
         &self,
         temp_string: String,
     ) -> Result<(), io::Error> {
