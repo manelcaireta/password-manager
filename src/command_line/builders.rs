@@ -1,5 +1,7 @@
-use super::length::PasswordLengths;
+mod length;
+
 use super::Password;
+use length::PasswordLengths;
 use rand;
 use rand::seq::SliceRandom;
 use rand::Rng;
@@ -43,10 +45,12 @@ impl PasswordBuilder {
 
 impl PasswordBuilder {
     pub fn build(&self, name: String) -> Password {
-        let password_lengths = self.gen_password_lengths();
-        let password_value = self.gen_password_from_lengths(password_lengths);
+        Password::new(name, self.build_secure_password())
+    }
 
-        Password::new(name, password_value)
+    pub fn build_secure_password(&self) -> String {
+        let password_lengths = self.gen_password_lengths();
+        self.gen_password_from_lengths(password_lengths)
     }
 
     fn gen_password_lengths(&self) -> PasswordLengths {
@@ -57,7 +61,10 @@ impl PasswordBuilder {
         password_lengths
     }
 
-    fn gen_password_from_lengths(&self, password_lengths: PasswordLengths) -> String {
+    fn gen_password_from_lengths(
+        &self,
+        password_lengths: PasswordLengths,
+    ) -> String {
         let mut password_characters = Vec::new();
         for _ in 0..password_lengths.lower() {
             password_characters.push(self.gen_lowercase_letter());
@@ -107,7 +114,7 @@ mod tests {
     use super::*;
 
     fn has_uppercase(password: &Password) -> bool {
-        for character in password.value.chars() {
+        for character in password.value().chars() {
             if character.is_ascii_uppercase() {
                 return true;
             }
@@ -116,7 +123,7 @@ mod tests {
     }
 
     fn has_lowercase(password: &Password) -> bool {
-        for character in password.value.chars() {
+        for character in password.value().chars() {
             if character.is_ascii_lowercase() {
                 return true;
             }
@@ -125,7 +132,7 @@ mod tests {
     }
 
     fn has_punctuation(password: &Password) -> bool {
-        for character in password.value.chars() {
+        for character in password.value().chars() {
             if character.is_ascii_punctuation() {
                 return true;
             }
@@ -134,7 +141,7 @@ mod tests {
     }
 
     fn has_numbers(password: &Password) -> bool {
-        for character in password.value.chars() {
+        for character in password.value().chars() {
             if character.is_ascii_digit() {
                 return true;
             }
@@ -150,8 +157,8 @@ mod tests {
         assert!(has_uppercase(&password));
         assert!(has_punctuation(&password));
         assert!(has_numbers(&password));
-        assert!(password.value.len() > 8);
-        assert!(password.value.len() < 16);
+        assert!(password.value().len() >= 8);
+        assert!(password.value().len() <= 16);
     }
 
     #[test]
@@ -164,7 +171,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn invalid_max_length() {
-        let mut password_creator = PasswordBuilder::new();
+        let mut password_creator = PasswordBuilder::new().min_length(1);
         password_creator = password_creator
             .clone()
             .max_length(password_creator.min_length - 1);

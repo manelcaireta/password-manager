@@ -42,10 +42,6 @@ impl PasswordLengths {
         }
     }
 
-    pub fn total_length(&self) -> u8 {
-        self.lower + self.upper + self.punctuation + self.numbers
-    }
-
     pub fn lower(&self) -> u8 {
         self.lower
     }
@@ -74,6 +70,6 @@ mod tests {
         assert!(lengths.upper > 0);
         assert!(lengths.punctuation > 0);
         assert!(lengths.numbers > 0);
-        assert!(lengths.total_length() == 10);
+        assert!(lengths.lower + lengths.upper + lengths.punctuation + lengths.numbers == 10);
     }
 }
