@@ -56,7 +56,7 @@ impl PasswordLengths {
 
     pub fn punctuation(&self) -> u8 {
         self.punctuation
-    }  
+    }
 
     pub fn numbers(&self) -> u8 {
         self.numbers
