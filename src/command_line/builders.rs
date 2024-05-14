@@ -45,10 +45,12 @@ impl PasswordBuilder {
 
 impl PasswordBuilder {
     pub fn build(&self, name: String) -> Password {
-        let password_lengths = self.gen_password_lengths();
-        let password_value = self.gen_password_from_lengths(password_lengths);
+        Password::new(name, self.build_secure_password())
+    }
 
-        Password::new(name, password_value)
+    pub fn build_secure_password(&self) -> String {
+        let password_lengths = self.gen_password_lengths();
+        self.gen_password_from_lengths(password_lengths)
     }
 
     fn gen_password_lengths(&self) -> PasswordLengths {
@@ -112,7 +114,7 @@ mod tests {
     use super::*;
 
     fn has_uppercase(password: &Password) -> bool {
-        for character in password.value.chars() {
+        for character in password.value().chars() {
             if character.is_ascii_uppercase() {
                 return true;
             }
@@ -121,7 +123,7 @@ mod tests {
     }
 
     fn has_lowercase(password: &Password) -> bool {
-        for character in password.value.chars() {
+        for character in password.value().chars() {
             if character.is_ascii_lowercase() {
                 return true;
             }
@@ -130,7 +132,7 @@ mod tests {
     }
 
     fn has_punctuation(password: &Password) -> bool {
-        for character in password.value.chars() {
+        for character in password.value().chars() {
             if character.is_ascii_punctuation() {
                 return true;
             }
@@ -139,7 +141,7 @@ mod tests {
     }
 
     fn has_numbers(password: &Password) -> bool {
-        for character in password.value.chars() {
+        for character in password.value().chars() {
             if character.is_ascii_digit() {
                 return true;
             }
@@ -155,8 +157,8 @@ mod tests {
         assert!(has_uppercase(&password));
         assert!(has_punctuation(&password));
         assert!(has_numbers(&password));
-        assert!(password.value.len() >= 8);
-        assert!(password.value.len() <= 16);
+        assert!(password.value().len() >= 8);
+        assert!(password.value().len() <= 16);
     }
 
     #[test]

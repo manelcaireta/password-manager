@@ -1,9 +1,8 @@
 use super::Password;
 use std::fs::{File, OpenOptions};
 use std::io;
-use std::io::{BufRead, BufReader, BufWriter, Read, Write};
-use std::ops::Not;
-use std::path::{Path, PathBuf};
+use std::io::{BufRead, BufReader, Write};
+use std::path::PathBuf;
 
 pub struct PasswordRepository {
     path: PathBuf,
@@ -55,8 +54,21 @@ impl PasswordRepository {
         None
     }
 
+    pub fn list(&self) {
+        let file = File::open(&self.path).expect("Couldn't open file");
+        let reader = BufReader::new(file);
+
+        for line in reader.lines() {
+            let line = line.expect("Couldn't read lines");
+            let mut splits = line.split(": ");
+            let name = splits.nth(0).unwrap().to_string();
+            println!("{name}")
+        }
+    }
+
     pub fn delete(&self, password_name: &str) {
-        let temp_string = self.read_all_passwords_except(password_name).unwrap();
+        let temp_string =
+            self.read_all_passwords_except(password_name).unwrap();
         self.write_all_passwords_from_string(temp_string)
             .expect("Couldn't write to file");
     }
@@ -75,12 +87,17 @@ impl PasswordRepository {
         };
         let reader = BufReader::new(&file_to_read);
 
-        let temp_string = self.delete_from_lines(reader.lines(), password_name);
+        let temp_string =
+            self.delete_from_lines(reader.lines(), password_name);
 
         Some(temp_string)
     }
 
-    fn delete_from_lines<B: BufRead>(&self, lines: io::Lines<B>, element_to_delete: &str) -> String{
+    fn delete_from_lines<B: BufRead>(
+        &self,
+        lines: io::Lines<B>,
+        element_to_delete: &str,
+    ) -> String {
         let mut temp_string = String::new();
         for line in lines {
             let current_line = line.expect("Couldn't read lines");
@@ -126,6 +143,7 @@ impl PasswordRepository {
     }
 }
 
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -152,7 +170,7 @@ mod tests {
         assert_eq!(
             new_password,
             password_repo
-                .get(&new_password.name)
+                .get(&new_password.name())
                 .expect("Couldn't get value")
         );
 
