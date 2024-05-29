@@ -40,11 +40,15 @@ impl<I: Iterator<Item = String>> CommandLine<I> {
                 "list" => self.list_all_passwords(),
                 "gen" => self.generate_password(),
                 "init" => Self::passwords_setup(),
-                _ => panic!("Unknown subcommand {subcommand}"),
+                _ => {
+                    println!("Unknown subcommand {subcommand}\n");
+                    self.show_documentation();
+                }
             },
             None => {
                 // This will be changed to show documentation
-                println!("No subcommand provided");
+                println!("No subcommand provided\n");
+                self.show_documentation();
             }
         }
     }
@@ -101,6 +105,20 @@ impl<I: Iterator<Item = String>> CommandLine<I> {
 
     fn passwords_setup() {
         Password::create_home_directory();
+    }
+
+    fn show_documentation(&self) {
+        let width = 10;
+
+        println!("usage: pwm <command>");
+        println!("");
+        println!("Commands:");
+        println!("  {:width$} Initializes password manager", "init");
+        println!("  {:width$} Generates a password", "gen");
+        println!("  {:width$} Creates and stores a new password", "new");
+        println!("  {:width$} Lists all passwords", "list");
+        println!("  {:width$} Recovers the value of a password", "get");
+        println!("  {:width$} Removes a password", "remove")
     }
 }
 
