@@ -1,5 +1,5 @@
 use super::Password;
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
@@ -14,7 +14,7 @@ impl Default for PasswordRepository {
             Ok(path) => PathBuf::from(&path),
             Err(_) => Password::default_path(),
         };
-        PasswordRepository { root_dir}
+        PasswordRepository { root_dir }
     }
 }
 
@@ -25,7 +25,9 @@ impl PasswordRepository {
 
     pub fn add(&self, password: &Password) {
         if self.get(password.name()).is_some() {
-            println!("Password already exists. Delete before adding a new one.")
+            println!(
+                "Password already exists. Delete before adding a new one."
+            )
         }
 
         let mut file = OpenOptions::new()
@@ -47,20 +49,28 @@ impl PasswordRepository {
         let mut reader = BufReader::new(file);
 
         let mut password_string = String::new();
-        reader.read_line(&mut password_string).expect("Error reading password");
+        reader
+            .read_line(&mut password_string)
+            .expect("Error reading password");
 
         None
     }
 
     pub fn list(&self) {
-        let file = File::open(&self.path).expect("Couldn't open file");
-        let reader = BufReader::new(file);
+        let paths = match fs::read_dir(&self.root_dir) {
+            Ok(paths) => paths,
+            Err(_) => {
+                println!(
+                    "Root path {} not found. Try running\npwm init\n.",
+                    self.root_dir.display()
+                );
+                return;
+            }
+        };
 
-        for line in reader.lines() {
-            let line = line.expect("Couldn't read lines");
-            let mut splits = line.split(": ");
-            let name = splits.nth(0).unwrap().to_string();
-            println!("{name}")
+        for path in paths {
+            let path = path.expect("Failed to read file");
+            println!("{}", path.file_name().to_str().unwrap());
         }
     }
 
