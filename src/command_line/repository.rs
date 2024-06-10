@@ -27,16 +27,21 @@ impl PasswordRepository {
         if self.get(password.name()).is_some() {
             println!(
                 "Password already exists. Delete before adding a new one."
-            )
+            );
+
+            return;
         }
 
+        let mut root_dir = self.root_dir.clone();
+        root_dir.push(password.name());
+
         let mut file = OpenOptions::new()
-            .append(true)
             .create(true)
-            .open(&self.path)
+            .open(&root_dir)
             .expect("Couldn't open file");
 
-        writeln!(file, "{password}").expect("Couldn't save password");
+        writeln!(file, "{}", password.value())
+            .expect("Couldn't save password");
     }
 
     pub fn get(&self, password_name: &str) -> Option<Password> {
