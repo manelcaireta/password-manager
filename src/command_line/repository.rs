@@ -1,6 +1,5 @@
 use super::Password;
 use std::fs::{self, File, OpenOptions};
-use std::io;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 
@@ -23,6 +22,8 @@ impl PasswordRepository {
         PasswordRepository::default()
     }
 
+    // TODO: implement password versioning
+
     pub fn add(&self, password: &Password) {
         if self.get(password.name()).is_some() {
             println!(
@@ -32,12 +33,12 @@ impl PasswordRepository {
             return;
         }
 
-        let mut root_dir = self.root_dir.clone();
-        root_dir.push(password.name());
+        let mut root_path = self.root_dir.clone();
+        root_path.push(password.name());
 
         let mut file = OpenOptions::new()
             .create(true)
-            .open(&root_dir)
+            .open(&root_path)
             .expect("Couldn't open file");
 
         writeln!(file, "{}", password.value())
@@ -80,77 +81,13 @@ impl PasswordRepository {
     }
 
     pub fn delete(&self, password_name: &str) {
-        let temp_string =
-            self.read_all_passwords_except(password_name).unwrap();
-        self.write_all_passwords_from_string(temp_string)
-            .expect("Couldn't write to file");
-    }
+        let mut root_path = self.root_dir.clone();
+        root_path.push(password_name);
 
-    fn read_all_passwords_except(
-        &self,
-        password_name: &str,
-    ) -> Option<String> {
-        let file_to_read = match OpenOptions::new().read(true).open(&self.path)
-        {
-            Ok(file) => file,
-            Err(err) => {
-                println!("Couldn't open passwords file: {err}");
-                return None;
-            }
-        };
-        let reader = BufReader::new(&file_to_read);
-
-        let temp_string =
-            self.delete_from_lines(reader.lines(), password_name);
-
-        Some(temp_string)
-    }
-
-    fn delete_from_lines<B: BufRead>(
-        &self,
-        lines: io::Lines<B>,
-        element_to_delete: &str,
-    ) -> String {
-        let mut temp_string = String::new();
-        for line in lines {
-            let current_line = line.expect("Couldn't read lines");
-            let split = current_line.split(": ").nth(0).unwrap().to_string();
-            if split != element_to_delete {
-                temp_string.push_str(&current_line);
-                temp_string.push('\n');
-            } else {
-                println!("Deleted {element_to_delete}");
-            }
-        }
-
-        temp_string
-    }
-
-    fn write_all_passwords_from_string(
-        &self,
-        temp_string: String,
-    ) -> Result<(), io::Error> {
-        let mut file_to_write = match OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(&self.path)
-        {
-            Ok(file) => file,
-            Err(err) => {
-                println!("Couldn't open passwords file: {err}");
-                return Err(io::Error::from(err));
-            }
-        };
-        file_to_write
-            .write_all(temp_string.as_bytes())
-            .expect("Couldn't write to file");
-
-        Ok(())
+        fs::remove_file(root_path).expect("Couldn't remove password");
     }
 
     pub fn update(&self, password: &Password) {
-        // NOTE: could make own implementation for performance boost
-
         self.delete(password.name());
         self.add(password);
     }
