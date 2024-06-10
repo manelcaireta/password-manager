@@ -5,17 +5,16 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
 
 pub struct PasswordRepository {
-    path: PathBuf,
+    root_dir: PathBuf,
 }
 
 impl Default for PasswordRepository {
     fn default() -> Self {
-        let mut path = match std::env::var("PASSWORDS_PATH") {
+        let root_dir = match std::env::var("PASSWORDS_PATH") {
             Ok(path) => PathBuf::from(&path),
             Err(_) => Password::default_path(),
         };
-        path.push("pwords.txt");
-        PasswordRepository { path }
+        PasswordRepository { root_dir}
     }
 }
 
@@ -26,7 +25,7 @@ impl PasswordRepository {
 
     pub fn add(&self, password: &Password) {
         if self.get(password.name()).is_some() {
-            panic!("Password already exists. Delete before ")
+            println!("Password already exists. Delete before adding a new one.")
         }
 
         let mut file = OpenOptions::new()
@@ -34,22 +33,21 @@ impl PasswordRepository {
             .create(true)
             .open(&self.path)
             .expect("Couldn't open file");
+
         writeln!(file, "{password}").expect("Couldn't save password");
     }
 
     pub fn get(&self, password_name: &str) -> Option<Password> {
-        let file = File::open(&self.path).expect("Couldn't open file");
-        let reader = BufReader::new(file);
+        let mut file_path = self.root_dir.clone();
+        file_path.push(password_name);
+        let file = match File::open(file_path) {
+            Ok(file) => file,
+            Err(_) => return None,
+        };
+        let mut reader = BufReader::new(file);
 
-        for line in reader.lines() {
-            let line = line.expect("Couldn't read lines");
-            let mut splits = line.split(": ");
-            let name = splits.nth(0).unwrap().to_string();
-            if name == password_name {
-                let value = splits.next().unwrap().to_string();
-                return Some(Password::new(name, value));
-            }
-        }
+        let mut password_string = String::new();
+        reader.read_line(&mut password_string).expect("Error reading password");
 
         None
     }
