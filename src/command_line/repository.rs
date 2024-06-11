@@ -33,12 +33,13 @@ impl PasswordRepository {
             return;
         }
 
-        let mut root_path = self.root_dir.clone();
-        root_path.push(password.name());
+        let mut file_path = self.root_dir.clone();
+        file_path.push(password.name());
 
         let mut file = OpenOptions::new()
+            .write(true)
             .create(true)
-            .open(&root_path)
+            .open(&file_path)
             .expect("Couldn't open file");
 
         writeln!(file, "{}", password.value())
@@ -48,18 +49,23 @@ impl PasswordRepository {
     pub fn get(&self, password_name: &str) -> Option<Password> {
         let mut file_path = self.root_dir.clone();
         file_path.push(password_name);
+
         let file = match File::open(file_path) {
             Ok(file) => file,
             Err(_) => return None,
         };
-        let mut reader = BufReader::new(file);
 
+        let mut reader = BufReader::new(file);
         let mut password_string = String::new();
+
         reader
             .read_line(&mut password_string)
             .expect("Error reading password");
 
-        None
+        Some(Password::new(
+            password_name.to_string(),
+            password_string.trim().to_string(),
+        ))
     }
 
     pub fn list(&self) {
@@ -84,7 +90,9 @@ impl PasswordRepository {
         let mut root_path = self.root_dir.clone();
         root_path.push(password_name);
 
-        fs::remove_file(root_path).expect("Couldn't remove password");
+        if root_path.exists() {
+            fs::remove_file(root_path).expect("Couldn't remove password");
+        }
     }
 
     pub fn update(&self, password: &Password) {

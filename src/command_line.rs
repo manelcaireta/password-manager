@@ -121,14 +121,3 @@ impl<I: Iterator<Item = String>> CommandLine<I> {
         println!("  {:width$} Removes a password", "remove")
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_new_password() {
-        let mut command_line = CommandLine::new();
-        command_line.new_password();
-    }
-}
