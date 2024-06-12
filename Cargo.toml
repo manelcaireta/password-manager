@@ -11,3 +11,6 @@ rand = "0.8.5"
 [[bin]]
 name = "pwm"
 path = "src/main.rs"
+
+[dev-dependencies]
+assert_cmd = "2.0.14"

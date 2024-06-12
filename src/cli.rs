@@ -7,15 +7,15 @@ pub use password::Password;
 pub use repository::PasswordRepository;
 use std::process::exit;
 
-pub struct CommandLine<I: Iterator<Item = String>> {
+pub struct CommandLineInterface<I: Iterator<Item = String>> {
     args: I,
     builder: PasswordBuilder,
     repository: PasswordRepository,
 }
 
-impl<I: Iterator<Item = String>> CommandLine<I> {
-    pub fn from_iter(args: I) -> CommandLine<I> {
-        CommandLine {
+impl<I: Iterator<Item = String>> CommandLineInterface<I> {
+    pub fn from_iter(args: I) -> CommandLineInterface<I> {
+        CommandLineInterface {
             args,
             builder: PasswordBuilder::new(),
             repository: PasswordRepository::new(),
@@ -23,15 +23,15 @@ impl<I: Iterator<Item = String>> CommandLine<I> {
     }
 }
 
-impl CommandLine<std::env::Args> {
-    pub fn new() -> CommandLine<std::env::Args> {
+impl CommandLineInterface<std::env::Args> {
+    pub fn new() -> CommandLineInterface<std::env::Args> {
         let mut args = std::env::args();
         args.next();
-        CommandLine::from_iter(args)
+        CommandLineInterface::from_iter(args)
     }
 }
 
-impl<I: Iterator<Item = String>> CommandLine<I> {
+impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     pub fn run(&mut self) {
         match self.args.next() {
             Some(subcommand) => match subcommand.as_str() {
