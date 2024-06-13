@@ -41,16 +41,16 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
                 "list" => self.list_all_passwords(),
                 "gen" => self.generate_password(),
                 "init" => Self::passwords_setup(),
-                "help" => self.show_documentation(),
+                "help" => Self::show_documentation(),
                 _ => {
                     eprintln!("pwm: Unknown subcommand {subcommand}\n");
-                    self.show_documentation();
+                    Self::show_documentation();
                     exit(1);
                 }
             },
             None => {
                 eprintln!("pwm: No subcommand provided\n");
-                self.show_documentation();
+                Self::show_documentation();
                 exit(1);
             }
         }
@@ -121,7 +121,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
         Password::create_home_directory();
     }
 
-    fn show_documentation(&self) {
+    fn show_documentation() {
         let width = 10;
 
         println!("usage: pwm <command>");
