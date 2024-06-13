@@ -81,7 +81,7 @@ impl PasswordRepository {
         };
 
         for path in paths {
-            let path = path.expect("Failed to read file");
+            let path = path.expect("Failed to read file names");
             println!("{}", path.file_name().to_str().unwrap());
         }
     }

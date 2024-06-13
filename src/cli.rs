@@ -5,16 +5,17 @@ mod repository;
 pub use builders::PasswordBuilder;
 pub use password::Password;
 pub use repository::PasswordRepository;
+use std::process::exit;
 
-pub struct CommandLine<I: Iterator<Item = String>> {
+pub struct CommandLineInterface<I: Iterator<Item = String>> {
     args: I,
     builder: PasswordBuilder,
     repository: PasswordRepository,
 }
 
-impl<I: Iterator<Item = String>> CommandLine<I> {
-    pub fn from_iter(args: I) -> CommandLine<I> {
-        CommandLine {
+impl<I: Iterator<Item = String>> CommandLineInterface<I> {
+    pub fn from_iter(args: I) -> CommandLineInterface<I> {
+        CommandLineInterface {
             args,
             builder: PasswordBuilder::new(),
             repository: PasswordRepository::new(),
@@ -22,15 +23,15 @@ impl<I: Iterator<Item = String>> CommandLine<I> {
     }
 }
 
-impl CommandLine<std::env::Args> {
-    pub fn new() -> CommandLine<std::env::Args> {
+impl CommandLineInterface<std::env::Args> {
+    pub fn new() -> CommandLineInterface<std::env::Args> {
         let mut args = std::env::args();
         args.next();
-        CommandLine::from_iter(args)
+        CommandLineInterface::from_iter(args)
     }
 }
 
-impl<I: Iterator<Item = String>> CommandLine<I> {
+impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     pub fn run(&mut self) {
         match self.args.next() {
             Some(subcommand) => match subcommand.as_str() {
@@ -40,25 +41,30 @@ impl<I: Iterator<Item = String>> CommandLine<I> {
                 "list" => self.list_all_passwords(),
                 "gen" => self.generate_password(),
                 "init" => Self::passwords_setup(),
+                "help" => Self::show_documentation(),
                 _ => {
-                    println!("Unknown subcommand {subcommand}\n");
-                    self.show_documentation();
+                    eprintln!("pwm: Unknown subcommand {subcommand}\n");
+                    Self::show_documentation();
+                    exit(1);
                 }
             },
             None => {
-                // This will be changed to show documentation
-                println!("No subcommand provided\n");
-                self.show_documentation();
+                eprintln!("pwm: No subcommand provided\n");
+                Self::show_documentation();
+                exit(1);
             }
         }
     }
 
     fn get_password(&mut self) {
         let password_name = self.password_name_from_args();
-        let password = self
-            .repository
-            .get(&password_name)
-            .expect("Password not found!");
+        let password = match self.repository.get(&password_name) {
+            Some(password) => password,
+            None => {
+                eprintln!("pwm: Password {password_name} not found");
+                exit(1);
+            }
+        };
         println!("{}", password)
     }
 
@@ -100,24 +106,34 @@ impl<I: Iterator<Item = String>> CommandLine<I> {
     }
 
     fn password_name_from_args(&mut self) -> String {
-        self.args.next().expect("No password name provided")
+        let password_name = match self.args.next() {
+            Some(password_name) => password_name,
+            None => {
+                eprintln!("pwm: No password name provided");
+                exit(1);
+            }
+        };
+
+        password_name
     }
 
     fn passwords_setup() {
         Password::create_home_directory();
     }
 
-    fn show_documentation(&self) {
+    fn show_documentation() {
         let width = 10;
 
         println!("usage: pwm <command>");
         println!("");
         println!("Commands:");
         println!("  {:width$} Initializes password manager", "init");
-        println!("  {:width$} Generates a password", "gen");
+        println!("  {:width$} Generates a password on the fly without", "gen");
+        println!("  {:width$} storing its value", "");
         println!("  {:width$} Creates and stores a new password", "new");
         println!("  {:width$} Lists all passwords", "list");
         println!("  {:width$} Recovers the value of a password", "get");
-        println!("  {:width$} Removes a password", "remove")
+        println!("  {:width$} Removes a password", "remove");
+        println!("  {:width$} Shows this help", "help");
     }
 }

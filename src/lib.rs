@@ -1,9 +1,9 @@
-pub mod command_line;
+pub mod cli;
 
-use command_line::CommandLine;
-pub use command_line::{Password, PasswordBuilder, PasswordRepository};
+use cli::CommandLineInterface;
+pub use cli::{Password, PasswordBuilder, PasswordRepository};
 
 pub fn main() {
-    let mut command_line = CommandLine::new();
+    let mut command_line = CommandLineInterface::new();
     command_line.run();
 }
