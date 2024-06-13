@@ -37,7 +37,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
             Some(subcommand) => match subcommand.as_str() {
                 "get" => self.get_password(),
                 "new" => self.new_password(),
-                "remove" => self.remove_password(),
+                "remove" | "rm" => self.remove_password(),
                 "list" => self.list_all_passwords(),
                 "gen" => self.generate_password(),
                 "init" => Self::passwords_setup(),
@@ -122,7 +122,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     }
 
     fn show_documentation() {
-        let width = 10;
+        let width = 12;
 
         println!("usage: pwm <command>");
         println!("");
@@ -133,7 +133,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
         println!("  {:width$} Creates and stores a new password", "new");
         println!("  {:width$} Lists all passwords", "list");
         println!("  {:width$} Recovers the value of a password", "get");
-        println!("  {:width$} Removes a password", "remove");
+        println!("  {:width$} Removes a password", "rm, remove");
         println!("  {:width$} Shows this help", "help");
     }
 }
