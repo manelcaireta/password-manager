@@ -86,7 +86,7 @@ impl PasswordRepository {
         }
     }
 
-    pub fn delete(&self, password_name: &str) {
+    pub fn remove(&self, password_name: &str) {
         let mut root_path = self.root_dir.clone();
         root_path.push(password_name);
 
@@ -96,7 +96,7 @@ impl PasswordRepository {
     }
 
     pub fn update(&self, password: &Password) {
-        self.delete(password.name());
+        self.remove(password.name());
         self.add(password);
     }
 }
@@ -111,7 +111,7 @@ mod tests {
             Password::new("test-password".to_string(), "TEST".to_string());
         let password_repo = PasswordRepository::new();
 
-        password_repo.delete(&password.name());
+        password_repo.remove(&password.name());
         password_repo.add(&password);
 
         assert_eq!(
@@ -132,6 +132,6 @@ mod tests {
                 .expect("Couldn't get value")
         );
 
-        password_repo.delete(new_password.name());
+        password_repo.remove(new_password.name());
     }
 }
