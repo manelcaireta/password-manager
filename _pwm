@@ -1,0 +1,22 @@
+#compdef pwm
+
+local -a subcmds
+subcmds=(
+    'init:Initializes password manager'
+    'gen:Generates a password'
+    'new:Creates and stores a new password'
+    'list:Lists all passwords'
+    'get:Recovers the value of a password'
+    'rm:Removes a password'
+    'remove:Removes a password'
+    'help:Show documentation')
+
+# Define init subcommands
+if [[ $words[2] == get || $words[2] == rm || $words[2] == remove ]]; then
+    local -a init_subcmds
+    init_subcmds=("${(@f)$(pwm list)}")
+    _describe 'passwords' init_subcmds
+    return
+fi
+
+_describe 'command' subcmds
