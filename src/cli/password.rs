@@ -4,6 +4,7 @@ use std::path::PathBuf;
 pub struct Password {
     name: String,
     value: String,
+    version: u32,
 }
 
 impl std::fmt::Display for Password {

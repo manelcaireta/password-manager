@@ -10,6 +10,7 @@ use rand::Rng;
 pub struct PasswordBuilder {
     min_length: u8,
     max_length: u8,
+    version: u8,
 }
 
 impl Default for PasswordBuilder {
@@ -17,6 +18,7 @@ impl Default for PasswordBuilder {
         PasswordBuilder {
             min_length: 8,
             max_length: 16,
+            version: 1,
         }
     }
 }
@@ -39,6 +41,11 @@ impl PasswordBuilder {
             panic!("Maximum length should be greater than minimum length");
         }
         self.max_length = max_length;
+        self
+    }
+
+    pub fn version(mut self, version: u8) -> Self {
+        self.version = version;
         self
     }
 }
