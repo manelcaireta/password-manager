@@ -4,7 +4,6 @@ use std::path::PathBuf;
 pub struct Password {
     name: String,
     value: String,
-    version: u32,
 }
 
 impl std::fmt::Display for Password {
@@ -18,7 +17,7 @@ impl std::fmt::Display for Password {
 
 impl Password {
     pub fn new(name: String, value: String) -> Self {
-        Self { name, value }
+        Password { name, value }
     }
 
     pub fn name(&self) -> &str {

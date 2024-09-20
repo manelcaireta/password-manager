@@ -1,7 +1,10 @@
-use super::Password;
-use std::fs::{self, File, OpenOptions};
+use super::password::Password;
+use super::version::PasswordVersion;
+use std;
+use std::fs::{self, create_dir, read_dir, File, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
+use std::process::exit;
 
 pub struct PasswordRepository {
     root_dir: PathBuf,
@@ -25,10 +28,12 @@ impl PasswordRepository {
     // TODO: implement password versioning
 
     pub fn add(&self, password: &Password) {
-        if self.get(password.name()).is_some() {
-            println!(
-                "Password already exists. Delete before adding a new one."
-            );
+        if self.get(password.name()).is_ok() {
+            /*
+             * TODO:
+             * get latest version
+             * update new version
+             */
 
             return;
         }
@@ -36,6 +41,10 @@ impl PasswordRepository {
         let mut file_path = self.root_dir.clone();
         file_path.push(password.name());
 
+        /* Literally 1984 */
+        create_dir(file_path);
+
+        file_path.push("1");
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -46,9 +55,19 @@ impl PasswordRepository {
             .expect("Couldn't save password");
     }
 
-    pub fn get(&self, password_name: &str) -> Option<Password> {
+    pub fn get(&self, password_name: &str) -> Result<PasswordVersion, Box<dyn std::error::Error>> {
         let mut file_path = self.root_dir.clone();
         file_path.push(password_name);
+
+        let current_version: u32;
+
+        let read_dir = match read_dir(file_path) {
+            Ok(result) => result,
+            Err(_) => {
+                println!("The password {} does not exist", password_name);
+                exit(1)
+            }
+        };
 
         let file = match File::open(file_path) {
             Ok(file) => file,

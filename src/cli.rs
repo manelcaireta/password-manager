@@ -1,6 +1,7 @@
 mod builders;
 mod password;
 mod repository;
+mod version;
 
 pub use builders::PasswordBuilder;
 pub use password::Password;
