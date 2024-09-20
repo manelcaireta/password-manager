@@ -61,8 +61,8 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     fn get_password(&mut self) {
         let password_name = self.password_name_from_args();
         let password = match self.repository.get(&password_name) {
-            Some(password) => password,
-            None => {
+            Ok(password) => password,
+            Err(_) => {
                 eprintln!("pwm: Password {password_name} not found");
                 exit(1);
             }

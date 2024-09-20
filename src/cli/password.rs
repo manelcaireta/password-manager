@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Password {
     name: String,
     value: String,
@@ -29,6 +29,8 @@ impl Password {
     }
 }
 
+
+// TODO: Rethink this
 impl Password {
     pub fn default_path() -> PathBuf {
         match std::env::var("PASSWORD_HOME") {

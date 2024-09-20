@@ -1,5 +1,6 @@
 use super::Password;
 
+#[derive(PartialEq, Debug)]
 pub struct PasswordVersion {
     password: Password,
     version: u32,
@@ -18,7 +19,16 @@ impl PasswordVersion {
         self.version
     }
 
-    pub fn register_version(&mut self, version: u32) {
+    pub fn register_new_version(&mut self) {
         self.version += 1
+    }
+}
+
+impl std::fmt::Display for PasswordVersion {
+    fn fmt(
+        &self,
+        formatter: &mut std::fmt::Formatter<'_>,
+    ) -> std::fmt::Result {
+        write!(formatter, "{}", self.password)
     }
 }

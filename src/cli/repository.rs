@@ -1,11 +1,9 @@
 use super::password::Password;
 use super::version::PasswordVersion;
 use std;
-use std::fs::{self, create_dir, read_dir, File, OpenOptions};
-use std::io::{BufRead, BufReader, Write};
-use std::os::unix::ffi::OsStrExt;
+use std::fs::{self, create_dir, read_dir, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::exit;
 
 pub struct PasswordRepository {
     root_dir: PathBuf,
@@ -34,6 +32,9 @@ impl PasswordRepository {
              * TODO:
              * get latest version
              * update new version
+             *
+             * TODO:
+             * return a Result
              */
 
             return;
@@ -43,7 +44,7 @@ impl PasswordRepository {
         file_path.push(password.name());
 
         /* Literally 1984 */
-        create_dir(file_path);
+        create_dir(file_path.clone()).expect("Expect");
 
         file_path.push("1");
         let mut file = OpenOptions::new()
@@ -52,7 +53,7 @@ impl PasswordRepository {
             .open(&file_path)
             .expect("Couldn't open file");
 
-        writeln!(file, "{}", password.value())
+        write!(file, "{}", password.value())
             .expect("Couldn't save password");
     }
 
@@ -67,12 +68,12 @@ impl PasswordRepository {
         &self,
         password_name: &str,
     ) -> Result<PasswordVersion, Box<dyn std::error::Error>> {
-        let mut password_versions_path =
+        let password_versions_path =
             self.root_dir.join(Path::new(password_name));
 
-        let mut current_version: u32;
+        let mut current_version: u32 = 0;
 
-        for entry in read_dir(password_versions_path)? {
+        for entry in read_dir(password_versions_path.clone())? {
             let entry = entry?;
             let version = match entry.file_name().into_string() {
                 Ok(version) => version.parse::<u32>()?,
@@ -118,8 +119,8 @@ impl PasswordRepository {
         let mut root_path = self.root_dir.clone();
         root_path.push(password_name);
 
-        if root_path.exists() {
-            fs::remove_file(root_path).expect("Couldn't remove password");
+        if root_path.exists() && root_path.is_dir() {
+            fs::remove_dir_all(root_path).expect("Couldn't remove password");
         }
     }
 
@@ -137,7 +138,7 @@ mod tests {
     fn save_and_update_new_password() {
         let password =
             Password::new("test-password".to_string(), "TEST".to_string());
-        let password_version = PasswordVersion::new(password, 1);
+        let password_version = PasswordVersion::new(password.clone(), 1);
         let password_repo = PasswordRepository::new();
 
         password_repo.remove(&password.name());
@@ -153,7 +154,8 @@ mod tests {
         let new_password =
             Password::new(password.name().to_string(), "NEW-TEST".to_string());
         password_repo.update(&new_password);
-        let new_password_version = PasswordVersion::new(new_password, 1);
+        let new_password_version =
+            PasswordVersion::new(new_password.clone(), 1);
 
         assert_eq!(
             new_password_version,
