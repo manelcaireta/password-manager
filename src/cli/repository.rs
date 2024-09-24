@@ -72,9 +72,7 @@ impl PasswordRepository {
         for entry in fs::read_dir(&password_folder)? {
             let entry = entry?;
             let version = match entry.file_name().into_string() {
-                Ok(version) => {
-                    version.parse::<u32>()?
-                }
+                Ok(version) => version.parse::<u32>()?,
                 Err(_) => continue,
             };
 
@@ -127,10 +125,16 @@ impl PasswordRepository {
 mod tests {
     use super::*;
 
+    const PASSWORD_NAME: &str = "test-password";
+    const PASSWORD_VALUE: &str = "TEST";
+    const NEW_PASSWORD_VALUE: &str = "NEW-TEST";
+
     #[test]
     fn save_and_update_new_password() {
-        let password =
-            Password::new("test-password".to_string(), "TEST".to_string());
+        let password = Password::new(
+            PASSWORD_NAME.to_string(),
+            PASSWORD_VALUE.to_string(),
+        );
         let password_version = PasswordVersion::new(password.clone(), 1);
         let password_repo = PasswordRepository::new();
 
@@ -144,8 +148,10 @@ mod tests {
                 .expect("Couldn't get value")
         );
 
-        let new_password =
-            Password::new(password.name().to_string(), "NEW-TEST".to_string());
+        let new_password = Password::new(
+            PASSWORD_NAME.to_string(),
+            NEW_PASSWORD_VALUE.to_string(),
+        );
         password_repo.add(&new_password);
 
         let new_password_version =
