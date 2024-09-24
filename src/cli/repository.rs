@@ -29,7 +29,7 @@ impl PasswordRepository {
         let password_folder = self.root_dir.join(Path::new(password.name()));
 
         if self.get_latest_version(&password_folder).is_ok() {
-            eprintln!("pwm: Password already exists. To update en existing password use\n\npwm update <PASSWORD_NAME> [PASSWORD VALUE]");
+            eprintln!("pwm: Password already exists. To update en existing password run:\n\n  `pwm update <PASSWORD_NAME> [PASSWORD VALUE]`");
             std::process::exit(1);
         };
 
@@ -87,7 +87,7 @@ impl PasswordRepository {
         let version = match self.get_latest_version(&password_folder) {
             Ok(version) => version + 1,
             Err(_) => {
-                eprintln!("pwm: Password does not exist. To create a new password run\n\npwm new <PASSWORD_NAME> [PASSWORD_VALUE]");
+                eprintln!("pwm: Password does not exist. To create a new password run:\n\n  `pwm new <PASSWORD_NAME> [PASSWORD_VALUE]`");
                 std::process::exit(1);
             }
         };

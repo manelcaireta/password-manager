@@ -149,8 +149,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     fn show_documentation() {
         let width = 12;
 
-        println!("usage: pwm <command>");
-        println!("");
+        println!("usage: pwm <command>\n");
         println!("Commands:");
         println!("  {:width$} Initializes password manager", "init");
         println!("  {:width$} Generates a password on the fly without", "gen");
