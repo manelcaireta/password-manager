@@ -45,7 +45,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
                 "init" => Self::passwords_setup(),
                 "help" => Self::show_documentation(),
                 _ => {
-                    eprintln!("pwm: Unknown subcommand {subcommand}\n");
+                    eprintln!("pwm: Unknown subcommand '{subcommand}'\n");
                     Self::show_documentation();
                     exit(1);
                 }
