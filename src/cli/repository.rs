@@ -1,8 +1,8 @@
 use super::password::Password;
 use super::version::PasswordVersion;
 use std;
-use std::fs::{self, create_dir, read_dir, OpenOptions};
-use std::io::Write;
+use std::fs::{self, create_dir, OpenOptions};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 pub struct PasswordRepository {
@@ -61,26 +61,32 @@ impl PasswordRepository {
         &self,
         password_name: &str,
     ) -> Result<PasswordVersion, Box<dyn std::error::Error>> {
-        self.get_latest_version(password_name)
+        let password_folder = self.root_dir.join(Path::new(password_name));
+        let current_version = self.get_latest_version(&password_folder)?;
+
+        let password_path = password_folder
+            .join(Path::new(current_version.to_string().as_str()));
+
+        let password_value = fs::read_to_string(password_path)?;
+        let password =
+            Password::new(password_name.to_string(), password_value);
+        Ok(PasswordVersion::new(password, current_version))
     }
 
-    pub fn get_latest_version(
+    fn get_latest_version<P: AsRef<Path>>(
         &self,
-        password_name: &str,
-    ) -> Result<PasswordVersion, Box<dyn std::error::Error>> {
-        let password_versions_path =
-            self.root_dir.join(Path::new(password_name));
-
+        password_folder: P,
+    ) -> Result<u32, Box<dyn std::error::Error>> {
         let mut current_version: u32 = 0;
 
-        for entry in read_dir(password_versions_path.clone())? {
+        for entry in fs::read_dir(&password_folder)? {
             let entry = entry?;
             let version = match entry.file_name().into_string() {
-                Ok(version) => version.parse::<u32>()?,
-                Err(_) => {
-                    eprintln!("pwm: Corrupted file detected in password {password_name} folder");
-                    continue;
+                Ok(version) => {
+                    println!("THE VERSION NUMBER IS: {version}");
+                    version.parse::<u32>()?
                 }
+                Err(_) => continue,
             };
 
             if current_version < version {
@@ -88,13 +94,11 @@ impl PasswordRepository {
             }
         }
 
-        let password_path = password_versions_path
-            .join(Path::new(current_version.to_string().as_str()));
-
-        let password_value = fs::read_to_string(password_path)?;
-        let password =
-            Password::new(password_name.to_string(), password_value);
-        Ok(PasswordVersion::new(password, current_version))
+        if current_version == 0 {
+            Err(Box::new(io::Error::from(io::ErrorKind::NotFound)))
+        } else {
+            Ok(current_version)
+        }
     }
 
     pub fn list(&self) {
