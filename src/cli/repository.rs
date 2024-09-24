@@ -27,34 +27,26 @@ impl PasswordRepository {
     // TODO: implement password versioning
 
     pub fn add(&self, password: &Password) {
-        if self.get(password.name()).is_ok() {
-            /*
-             * TODO:
-             * get latest version
-             * update new version
-             *
-             * TODO:
-             * return a Result
-             */
+        let password_folder = self.root_dir.join(Path::new(password.name()));
 
-            return;
-        }
+        let version = match self.get_latest_version(&password_folder) {
+            Ok(version) => version + 1,
+            Err(_) => {
+                fs::create_dir(password_folder.clone()).expect("Expect");
+                1
+            }
+        };
 
-        let mut file_path = self.root_dir.clone();
-        file_path.push(password.name());
-
-        /* Literally 1984 */
-        create_dir(file_path.clone()).expect("Expect");
-
-        file_path.push("1");
-        let mut file = OpenOptions::new()
+        println!("version: {}", version);
+        let password_file =
+            password_folder.join(Path::new(version.to_string().as_str()));
+        let mut file = fs::OpenOptions::new()
             .write(true)
             .create(true)
-            .open(&file_path)
+            .open(&password_file)
             .expect("Couldn't open file");
 
-        write!(file, "{}", password.value())
-            .expect("Couldn't save password");
+        write!(file, "{}", password.value()).expect("Couldn't save password");
     }
 
     pub fn get(
