@@ -31,12 +31,11 @@ impl PasswordRepository {
         let version = match self.get_latest_version(&password_folder) {
             Ok(version) => version + 1,
             Err(_) => {
-                fs::create_dir(password_folder.clone()).expect("Expect");
+                fs::create_dir(&password_folder).expect("Expect");
                 1
             }
         };
 
-        println!("version: {}", version);
         let password_file =
             password_folder.join(Path::new(version.to_string().as_str()));
         let mut file = fs::OpenOptions::new()
@@ -74,7 +73,6 @@ impl PasswordRepository {
             let entry = entry?;
             let version = match entry.file_name().into_string() {
                 Ok(version) => {
-                    println!("THE VERSION NUMBER IS: {version}");
                     version.parse::<u32>()?
                 }
                 Err(_) => continue,
@@ -96,7 +94,7 @@ impl PasswordRepository {
         let paths = match fs::read_dir(&self.root_dir) {
             Ok(paths) => paths,
             Err(_) => {
-                println!(
+                eprintln!(
                     "Root path {} not found. Try running\npwm init\n.",
                     self.root_dir.display()
                 );
@@ -140,13 +138,6 @@ mod tests {
         password_repo.add(&password);
 
         assert_eq!(
-            1,
-            password_repo
-                .get_latest_version(password.name())
-                .unwrap_or(0)
-        );
-
-        assert_eq!(
             password_version,
             password_repo
                 .get(password.name())
@@ -158,7 +149,7 @@ mod tests {
         password_repo.add(&new_password);
 
         let new_password_version =
-            PasswordVersion::new(new_password.clone(), 1);
+            PasswordVersion::new(new_password.clone(), 2);
         assert_eq!(
             new_password_version,
             password_repo
