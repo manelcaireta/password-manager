@@ -44,17 +44,21 @@ impl PasswordRepository {
     pub fn get(
         &self,
         password_name: &str,
+        version: Option<u32>,
     ) -> Result<PasswordVersion, Box<dyn std::error::Error>> {
         let password_folder = self.root_dir.join(Path::new(password_name));
-        let current_version = self.get_latest_version(&password_folder)?;
+        let version = match version {
+            None => self.get_latest_version(&password_folder)?,
+            Some(version) => version,
+        };
 
-        let password_path = password_folder
-            .join(Path::new(current_version.to_string().as_str()));
+        let password_path =
+            password_folder.join(Path::new(version.to_string().as_str()));
 
         let password_value = fs::read_to_string(password_path)?;
         let password =
             Password::new(password_name.to_string(), password_value);
-        Ok(PasswordVersion::new(password, current_version))
+        Ok(PasswordVersion::new(password, version))
     }
 
     fn get_latest_version<P: AsRef<Path>>(
@@ -162,28 +166,27 @@ mod tests {
         let password_repo = PasswordRepository::new();
 
         password_repo.remove(&password.name());
-        
+
         let new_password = Password::new(
             PASSWORD_NAME.to_string(),
             NEW_PASSWORD_VALUE.to_string(),
         );
         let new_password_version =
-        PasswordVersion::new(new_password.clone(), 2);
-        
-        
+            PasswordVersion::new(new_password.clone(), 2);
+
         password_repo.add(&password);
         password_repo.update(&new_password);
-        
+
         assert_eq!(
             password_version,
             password_repo
-                .get(&new_password.name(), 1)
+                .get(&new_password.name(), Some(1))
                 .expect("Couldn't get value")
         );
         assert_eq!(
             new_password_version,
             password_repo
-                .get(&new_password.name(), 2)
+                .get(&new_password.name(), Some(2))
                 .expect("Couldn't get value")
         );
 
