@@ -28,23 +28,17 @@ impl PasswordRepository {
     pub fn add(&self, password: &Password) {
         let password_folder = self.root_dir.join(Path::new(password.name()));
 
-        let version = match self.get_latest_version(&password_folder) {
-            Ok(version) => version + 1,
-            Err(_) => {
-                fs::create_dir(&password_folder).expect("Expect");
-                1
-            }
+        if self.get_latest_version(&password_folder).is_ok() {
+            eprintln!("pwm: Password already exists. To update en existing password use\n\npwm update <PASSWORD_NAME> [PASSWORD VALUE]");
+            std::process::exit(1);
         };
 
-        let password_file =
-            password_folder.join(Path::new(version.to_string().as_str()));
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(&password_file)
-            .expect("Couldn't open file");
+        fs::create_dir(&password_folder).expect("Expect");
 
-        write!(file, "{}", password.value()).expect("Couldn't save password");
+        self.write_password_version(
+            &password_folder,
+            PasswordVersion::new(password.to_owned(), 1),
+        );
     }
 
     pub fn get(
@@ -88,6 +82,40 @@ impl PasswordRepository {
         }
     }
 
+    pub fn update(&self, password: &Password) {
+        let password_folder = self.root_dir.join(Path::new(password.name()));
+        let version = match self.get_latest_version(&password_folder) {
+            Ok(version) => version + 1,
+            Err(_) => {
+                eprintln!("pwm: Password does not exist. To create a new password run\n\npwm new <PASSWORD_NAME> [PASSWORD_VALUE]");
+                std::process::exit(1);
+            }
+        };
+
+        self.write_password_version(
+            &password_folder,
+            PasswordVersion::new(password.to_owned(), version),
+        );
+    }
+
+    fn write_password_version<P: AsRef<Path>>(
+        &self,
+        password_folder: P,
+        password_version: PasswordVersion,
+    ) {
+        let password_file = password_folder
+            .as_ref()
+            .join(Path::new(password_version.version().to_string().as_str()));
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&password_file)
+            .expect("Couldn't open file");
+
+        write!(file, "{}", password_version.password().value())
+            .expect("Couldn't save password");
+    }
+
     pub fn list(&self) {
         let paths = match fs::read_dir(&self.root_dir) {
             Ok(paths) => paths,
@@ -113,11 +141,6 @@ impl PasswordRepository {
         if root_path.exists() && root_path.is_dir() {
             fs::remove_dir_all(&root_path).unwrap();
         }
-    }
-
-    pub fn update(&self, password: &Password) {
-        self.remove(password.name());
-        self.add(password);
     }
 }
 
@@ -152,7 +175,7 @@ mod tests {
             PASSWORD_NAME.to_string(),
             NEW_PASSWORD_VALUE.to_string(),
         );
-        password_repo.add(&new_password);
+        password_repo.update(&new_password);
 
         let new_password_version =
             PasswordVersion::new(new_password.clone(), 2);
