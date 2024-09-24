@@ -162,27 +162,28 @@ mod tests {
         let password_repo = PasswordRepository::new();
 
         password_repo.remove(&password.name());
-        password_repo.add(&password);
-
-        assert_eq!(
-            password_version,
-            password_repo
-                .get(password.name())
-                .expect("Couldn't get value")
-        );
-
+        
         let new_password = Password::new(
             PASSWORD_NAME.to_string(),
             NEW_PASSWORD_VALUE.to_string(),
         );
-        password_repo.update(&new_password);
-
         let new_password_version =
-            PasswordVersion::new(new_password.clone(), 2);
+        PasswordVersion::new(new_password.clone(), 2);
+        
+        
+        password_repo.add(&password);
+        password_repo.update(&new_password);
+        
+        assert_eq!(
+            password_version,
+            password_repo
+                .get(&new_password.name(), 1)
+                .expect("Couldn't get value")
+        );
         assert_eq!(
             new_password_version,
             password_repo
-                .get(&new_password.name())
+                .get(&new_password.name(), 2)
                 .expect("Couldn't get value")
         );
 
