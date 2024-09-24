@@ -1,9 +1,8 @@
 use super::password::Password;
 use super::version::PasswordVersion;
-use std;
-use std::fs::{self, create_dir, OpenOptions};
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::{self, fs, io};
 
 pub struct PasswordRepository {
     root_dir: PathBuf,
@@ -116,7 +115,7 @@ impl PasswordRepository {
         root_path.push(password_name);
 
         if root_path.exists() && root_path.is_dir() {
-            fs::remove_dir_all(root_path).expect("Couldn't remove password");
+            fs::remove_dir_all(&root_path).unwrap();
         }
     }
 
@@ -141,6 +140,13 @@ mod tests {
         password_repo.add(&password);
 
         assert_eq!(
+            1,
+            password_repo
+                .get_latest_version(password.name())
+                .unwrap_or(0)
+        );
+
+        assert_eq!(
             password_version,
             password_repo
                 .get(password.name())
@@ -149,10 +155,10 @@ mod tests {
 
         let new_password =
             Password::new(password.name().to_string(), "NEW-TEST".to_string());
-        password_repo.update(&new_password);
+        password_repo.add(&new_password);
+
         let new_password_version =
             PasswordVersion::new(new_password.clone(), 1);
-
         assert_eq!(
             new_password_version,
             password_repo
