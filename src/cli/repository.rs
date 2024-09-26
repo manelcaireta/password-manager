@@ -1,5 +1,6 @@
 use super::password::Password;
 use super::version::PasswordVersion;
+use super::flags::GetFlags;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{self, fs, io};
@@ -44,10 +45,10 @@ impl PasswordRepository {
     pub fn get(
         &self,
         password_name: &str,
-        version: Option<u32>,
+        options: GetFlags,
     ) -> Result<PasswordVersion, Box<dyn std::error::Error>> {
         let password_folder = self.root_dir.join(Path::new(password_name));
-        let version = match version {
+        let version = match options.version {
             None => self.get_latest_version(&password_folder)?,
             Some(version) => version,
         };
@@ -158,12 +159,15 @@ mod tests {
 
     #[test]
     fn save_and_update_new_password() {
+        let password_repo = PasswordRepository::new();
+
         let password = Password::new(
             PASSWORD_NAME.to_string(),
             PASSWORD_VALUE.to_string(),
         );
         let password_version = PasswordVersion::new(password.clone(), 1);
-        let password_repo = PasswordRepository::new();
+        let mut original_options = GetFlags::new();
+        original_options.version = Some(1);
 
         password_repo.remove(&password.name());
 
@@ -173,6 +177,8 @@ mod tests {
         );
         let new_password_version =
             PasswordVersion::new(new_password.clone(), 2);
+        let mut new_options = GetFlags::new();
+        new_options.version = Some(2);
 
         password_repo.add(&password);
         password_repo.update(&new_password);
@@ -180,13 +186,13 @@ mod tests {
         assert_eq!(
             password_version,
             password_repo
-                .get(&new_password.name(), Some(1))
+                .get(&new_password.name(), original_options)
                 .expect("Couldn't get value")
         );
         assert_eq!(
             new_password_version,
             password_repo
-                .get(&new_password.name(), Some(2))
+                .get(&new_password.name(), new_options)
                 .expect("Couldn't get value")
         );
 

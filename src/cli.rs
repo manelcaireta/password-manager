@@ -1,10 +1,11 @@
 mod builders;
+mod flags;
 mod password;
 mod repository;
 mod version;
-mod options;
 
 pub use builders::PasswordBuilder;
+use flags::GetFlags;
 pub use password::Password;
 pub use repository::PasswordRepository;
 use std::process::exit;
@@ -61,22 +62,9 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
 
     fn get_password(&mut self) {
         let password_name = self.password_name_from_args();
+        let mut flags = GetFlags::new();
 
-        let version = match self.args.next() {
-            None => None,
-            Some(arg) => {
-                if arg == "-v" || arg == "--version"  {
-                    match self.args.next() {
-                        None => None,
-                        Some(version) => version.parse::<u32>().ok()
-                    }
-                } else {
-                    None
-                }
-            }
-        };
-
-        let password = match self.repository.get(&password_name, version) {
+        let password = match self.repository.get(&password_name, flags) {
             Ok(password) => password,
             Err(_) => {
                 eprintln!("pwm: Password {password_name} not found");
@@ -84,6 +72,34 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
             }
         };
         println!("{}", password)
+    }
+
+    pub fn parse_get_flags(
+        &self,
+        mut flags: GetFlags,
+    ) -> GetFlags {
+        match self.args.next() {
+            None => return flags,
+            Some(arg) => match arg.as_str() {
+                "--version" => {
+                    flags.version =
+                        self.args.next().map(|s| match s.parse::<u32>() {
+                            Ok(result) => result,
+                            Err(_) => {
+                                eprintln!(
+                                    "pwm: Incorrect version number '{s}'"
+                                );
+                                std::process::exit(1)
+                            }
+                        })
+                }
+                value => {
+                    eprintln!("pwm: Unknown flag '{value}' for get command\n")
+                }
+            },
+        }
+
+        self.parse_get_flags(flags)
     }
 
     fn new_password(&mut self) {
