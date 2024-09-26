@@ -1,6 +1,7 @@
 mod builders;
 mod password;
 mod repository;
+mod version;
 
 pub use builders::PasswordBuilder;
 pub use password::Password;
@@ -37,7 +38,8 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
             Some(subcommand) => match subcommand.as_str() {
                 "get" => self.get_password(),
                 "new" => self.new_password(),
-                "remove" => self.remove_password(),
+                "update" => self.update_password(),
+                "remove" | "rm" => self.remove_password(),
                 "list" => self.list_all_passwords(),
                 "gen" => self.generate_password(),
                 "init" => Self::passwords_setup(),
@@ -59,8 +61,8 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     fn get_password(&mut self) {
         let password_name = self.password_name_from_args();
         let password = match self.repository.get(&password_name) {
-            Some(password) => password,
-            None => {
+            Ok(password) => password,
+            Err(_) => {
                 eprintln!("pwm: Password {password_name} not found");
                 exit(1);
             }
@@ -72,28 +74,51 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
         let password_name = self.password_name_from_args();
         match self.args.next() {
             Some(password_value) => self
-                .save_password(&Password::new(password_name, password_value)),
+                .repository
+                .add(&Password::new(password_name, password_value)),
             None => self.create_and_save_password(password_name),
         }
     }
 
+    fn update_password(&mut self) {
+        let password_name = self.password_name_from_args();
+        match self.args.next() {
+            Some(password_value) => self
+                .repository
+                .update(&Password::new(password_name, password_value)),
+            None => self.create_and_update_password(password_name),
+        };
+    }
+
     fn create_and_save_password(&self, password_name: String) {
-        let password = self.create_password(password_name);
-        self.save_password(&password);
+        let password = self.builder.build(password_name);
+        self.repository.add(&password);
         println!("{}", password)
     }
 
-    fn create_password(&self, password_name: String) -> Password {
-        self.builder.build(password_name)
-    }
-
-    fn save_password(&self, password: &Password) {
-        self.repository.add(password);
+    fn create_and_update_password(&self, password_name: String) {
+        let password = self.builder.build(password_name);
+        self.repository.update(&password);
+        println!("{}", password)
     }
 
     fn remove_password(&mut self) {
         let password_name = self.password_name_from_args();
-        self.repository.delete(&password_name);
+
+        println!(
+            "Are you sure you want to delete the password? (yes/no) [no]",
+        );
+        let mut user_confirmation = String::new();
+        match std::io::stdin().read_line(&mut user_confirmation) {
+            Ok(_) => (),
+            Err(_) => user_confirmation = String::from("no"),
+        };
+
+        if user_confirmation.trim().to_lowercase() == "yes" {
+            self.repository.remove(&password_name);
+        } else {
+            println!("Password deletion aborted");
+        }
     }
 
     fn list_all_passwords(&self) {
@@ -122,7 +147,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     }
 
     fn show_documentation() {
-        let width = 10;
+        let width = 12;
 
         println!("usage: pwm <command>");
         println!("");
@@ -133,7 +158,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
         println!("  {:width$} Creates and stores a new password", "new");
         println!("  {:width$} Lists all passwords", "list");
         println!("  {:width$} Recovers the value of a password", "get");
-        println!("  {:width$} Removes a password", "remove");
+        println!("  {:width$} Removes a password", "rm, remove");
         println!("  {:width$} Shows this help", "help");
     }
 }
