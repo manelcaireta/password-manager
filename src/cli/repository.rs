@@ -1,6 +1,6 @@
+use super::flags::GetFlags;
 use super::password::Password;
 use super::version::PasswordVersion;
-use super::flags::GetFlags;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::{self, fs, io};
@@ -34,7 +34,7 @@ impl PasswordRepository {
             std::process::exit(1);
         };
 
-        fs::create_dir(&password_folder).expect("Expect");
+        fs::create_dir_all(&password_folder).expect("Expect");
 
         self.write_password_version(
             &password_folder,

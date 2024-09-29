@@ -63,6 +63,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     fn get_password(&mut self) {
         let password_name = self.password_name_from_args();
         let mut flags = GetFlags::new();
+        flags = self.parse_get_flags(flags);
 
         let password = match self.repository.get(&password_name, flags) {
             Ok(password) => password,
@@ -74,14 +75,11 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
         println!("{}", password)
     }
 
-    pub fn parse_get_flags(
-        &self,
-        mut flags: GetFlags,
-    ) -> GetFlags {
+    pub fn parse_get_flags(&mut self, mut flags: GetFlags) -> GetFlags {
         match self.args.next() {
             None => return flags,
             Some(arg) => match arg.as_str() {
-                "--version" => {
+                "--version" | "-v" => {
                     flags.version =
                         self.args.next().map(|s| match s.parse::<u32>() {
                             Ok(result) => result,
