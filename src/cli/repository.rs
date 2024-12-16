@@ -24,8 +24,6 @@ impl PasswordRepository {
         PasswordRepository::default()
     }
 
-    // TODO: implement password versioning
-
     pub fn add(&self, password: &Password) {
         let password_folder = self.root_dir.join(Path::new(password.name()));
 
