@@ -1,22 +1,45 @@
 #compdef pwm
 
-local -a subcmds
-subcmds=(
-    'init:Initializes password manager'
-    'gen:Generates a password'
-    'new:Creates and stores a new password'
-    'list:Lists all passwords'
-    'get:Recovers the value of a password'
-    'rm:Removes a password'
-    'remove:Removes a password'
-    'help:Show documentation')
+_pwm_completion_entries() {
+    local -a entries
+    entries=($(_call_program pwm_list pwm list))
+    if [[ -z $entries ]]; then
+        entries=("no-entries-found")
+    fi
+    _describe "passwords" entries
+}
 
-# Define init subcommands
-if [[ $words[2] == get || $words[2] == rm || $words[2] == remove ]]; then
-    local -a init_subcmds
-    init_subcmds=("${(@f)$(pwm list)}")
-    _describe 'passwords' init_subcmds
-    return
-fi
+_pwm_completion() {
+    local -a options
+    options=(
+        'init:Initializes password manager'
+        'gen:Generates a random password without storing its value'
+        'new:Creates and stores a new password'
+        'list:Lists all passwords'
+        'get:Recovers the value of a password'
+        'update:Updates a password creating a new version'
+        'rm:Removes a password'
+        'remove:Removes a password'
+        'help:Show documentation')
 
-_describe 'command' subcmds
+    _arguments -C \
+        "1:command:->commands" \
+        '2:entry:->entries' \
+        '*::options:->options'
+
+    case $state in
+    commands)
+        _describe "pwm commands" options
+        ;;
+    entries)
+        # Provide entry completion for specific commands
+        case $words[2] in
+        list | get | update | rm | remove)
+            _pwm_completion_entries
+            ;;
+        esac
+        ;;
+    esac
+}
+
+compdef _pwm_completion pwm
