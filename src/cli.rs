@@ -1,9 +1,11 @@
 mod builders;
+mod flags;
 mod password;
 mod repository;
 mod version;
 
 pub use builders::PasswordBuilder;
+use flags::GetFlags;
 pub use password::Password;
 pub use repository::PasswordRepository;
 use std::process::exit;
@@ -45,7 +47,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
                 "init" => Self::passwords_setup(),
                 "help" => Self::show_documentation(),
                 _ => {
-                    eprintln!("pwm: Unknown subcommand {subcommand}\n");
+                    eprintln!("pwm: Unknown subcommand '{subcommand}'\n");
                     Self::show_documentation();
                     exit(1);
                 }
@@ -60,7 +62,10 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
 
     fn get_password(&mut self) {
         let password_name = self.password_name_from_args();
-        let password = match self.repository.get(&password_name) {
+        let mut flags = GetFlags::new();
+        flags = self.parse_get_flags(flags);
+
+        let password = match self.repository.get(&password_name, flags) {
             Ok(password) => password,
             Err(_) => {
                 eprintln!("pwm: Password {password_name} not found");
@@ -68,6 +73,31 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
             }
         };
         println!("{}", password)
+    }
+
+    pub fn parse_get_flags(&mut self, mut flags: GetFlags) -> GetFlags {
+        match self.args.next() {
+            None => return flags,
+            Some(arg) => match arg.as_str() {
+                "--version" | "-v" => {
+                    flags.version =
+                        self.args.next().map(|s| match s.parse::<u32>() {
+                            Ok(result) => result,
+                            Err(_) => {
+                                eprintln!(
+                                    "pwm: Incorrect version number '{s}'"
+                                );
+                                std::process::exit(1)
+                            }
+                        })
+                }
+                value => {
+                    eprintln!("pwm: Unknown flag '{value}' for get command\n")
+                }
+            },
+        }
+
+        self.parse_get_flags(flags)
     }
 
     fn new_password(&mut self) {
@@ -149,8 +179,7 @@ impl<I: Iterator<Item = String>> CommandLineInterface<I> {
     fn show_documentation() {
         let width = 12;
 
-        println!("usage: pwm <command>");
-        println!("");
+        println!("usage: pwm <command>\n");
         println!("Commands:");
         println!("  {:width$} Initializes password manager", "init");
         println!("  {:width$} Generates a password on the fly without", "gen");

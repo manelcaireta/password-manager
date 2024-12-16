@@ -1,3 +1,4 @@
+use super::flags::GetFlags;
 use super::password::Password;
 use super::version::PasswordVersion;
 use std::io::Write;
@@ -23,44 +24,40 @@ impl PasswordRepository {
         PasswordRepository::default()
     }
 
-    // TODO: implement password versioning
-
     pub fn add(&self, password: &Password) {
         let password_folder = self.root_dir.join(Path::new(password.name()));
 
-        let version = match self.get_latest_version(&password_folder) {
-            Ok(version) => version + 1,
-            Err(_) => {
-                fs::create_dir(&password_folder).expect("Expect");
-                1
-            }
+        if self.get_latest_version(&password_folder).is_ok() {
+            eprintln!("pwm: Password already exists. To update en existing password run:\n\n  `pwm update <PASSWORD_NAME> [PASSWORD VALUE]`");
+            std::process::exit(1);
         };
 
-        let password_file =
-            password_folder.join(Path::new(version.to_string().as_str()));
-        let mut file = fs::OpenOptions::new()
-            .write(true)
-            .create(true)
-            .open(&password_file)
-            .expect("Couldn't open file");
+        fs::create_dir_all(&password_folder).expect("Expect");
 
-        write!(file, "{}", password.value()).expect("Couldn't save password");
+        self.write_password_version(
+            &password_folder,
+            PasswordVersion::new(password.to_owned(), 1),
+        );
     }
 
     pub fn get(
         &self,
         password_name: &str,
+        options: GetFlags,
     ) -> Result<PasswordVersion, Box<dyn std::error::Error>> {
         let password_folder = self.root_dir.join(Path::new(password_name));
-        let current_version = self.get_latest_version(&password_folder)?;
+        let version = match options.version {
+            None => self.get_latest_version(&password_folder)?,
+            Some(version) => version,
+        };
 
-        let password_path = password_folder
-            .join(Path::new(current_version.to_string().as_str()));
+        let password_path =
+            password_folder.join(Path::new(version.to_string().as_str()));
 
         let password_value = fs::read_to_string(password_path)?;
         let password =
             Password::new(password_name.to_string(), password_value);
-        Ok(PasswordVersion::new(password, current_version))
+        Ok(PasswordVersion::new(password, version))
     }
 
     fn get_latest_version<P: AsRef<Path>>(
@@ -72,9 +69,7 @@ impl PasswordRepository {
         for entry in fs::read_dir(&password_folder)? {
             let entry = entry?;
             let version = match entry.file_name().into_string() {
-                Ok(version) => {
-                    version.parse::<u32>()?
-                }
+                Ok(version) => version.parse::<u32>()?,
                 Err(_) => continue,
             };
 
@@ -88,6 +83,40 @@ impl PasswordRepository {
         } else {
             Ok(current_version)
         }
+    }
+
+    pub fn update(&self, password: &Password) {
+        let password_folder = self.root_dir.join(Path::new(password.name()));
+        let version = match self.get_latest_version(&password_folder) {
+            Ok(version) => version + 1,
+            Err(_) => {
+                eprintln!("pwm: Password does not exist. To create a new password run:\n\n  `pwm new <PASSWORD_NAME> [PASSWORD_VALUE]`");
+                std::process::exit(1);
+            }
+        };
+
+        self.write_password_version(
+            &password_folder,
+            PasswordVersion::new(password.to_owned(), version),
+        );
+    }
+
+    fn write_password_version<P: AsRef<Path>>(
+        &self,
+        password_folder: P,
+        password_version: PasswordVersion,
+    ) {
+        let password_file = password_folder
+            .as_ref()
+            .join(Path::new(password_version.version().to_string().as_str()));
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .open(&password_file)
+            .expect("Couldn't open file");
+
+        write!(file, "{}", password_version.password().value())
+            .expect("Couldn't save password");
     }
 
     pub fn list(&self) {
@@ -116,44 +145,52 @@ impl PasswordRepository {
             fs::remove_dir_all(&root_path).unwrap();
         }
     }
-
-    pub fn update(&self, password: &Password) {
-        self.remove(password.name());
-        self.add(password);
-    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    const PASSWORD_NAME: &str = "test-password";
+    const PASSWORD_VALUE: &str = "TEST";
+    const NEW_PASSWORD_VALUE: &str = "NEW-TEST";
+
     #[test]
     fn save_and_update_new_password() {
-        let password =
-            Password::new("test-password".to_string(), "TEST".to_string());
-        let password_version = PasswordVersion::new(password.clone(), 1);
         let password_repo = PasswordRepository::new();
 
+        let password = Password::new(
+            PASSWORD_NAME.to_string(),
+            PASSWORD_VALUE.to_string(),
+        );
+        let password_version = PasswordVersion::new(password.clone(), 1);
+        let mut original_options = GetFlags::new();
+        original_options.version = Some(1);
+
         password_repo.remove(&password.name());
+
+        let new_password = Password::new(
+            PASSWORD_NAME.to_string(),
+            NEW_PASSWORD_VALUE.to_string(),
+        );
+        let new_password_version =
+            PasswordVersion::new(new_password.clone(), 2);
+        let mut new_options = GetFlags::new();
+        new_options.version = Some(2);
+
         password_repo.add(&password);
+        password_repo.update(&new_password);
 
         assert_eq!(
             password_version,
             password_repo
-                .get(password.name())
+                .get(&new_password.name(), original_options)
                 .expect("Couldn't get value")
         );
-
-        let new_password =
-            Password::new(password.name().to_string(), "NEW-TEST".to_string());
-        password_repo.add(&new_password);
-
-        let new_password_version =
-            PasswordVersion::new(new_password.clone(), 2);
         assert_eq!(
             new_password_version,
             password_repo
-                .get(&new_password.name())
+                .get(&new_password.name(), new_options)
                 .expect("Couldn't get value")
         );
 
