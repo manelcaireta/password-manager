@@ -42,3 +42,6 @@ This will create a folder on `~/.passwords` where all passwords will be stored. 
 |   `update`    | Update a password creating a new version             |
 | `rm`/`remove` | Remove a password                                    |
 |    `help`     | Show documentation                                   |
+
+> [!WARNING]
+> This application is for educational purposes and not suited for actual password management. Use it at your own risk.
